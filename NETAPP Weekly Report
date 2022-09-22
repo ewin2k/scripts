@@ -1,0 +1,205 @@
+#!/bin/ksh
+logfile=/home/wintest/burndown/report/burndown_raw
+logfinal=/var/www/html/NetAppReport.html
+content=/home/wintest/burndown/report/content.html
+exportsd21=/home/wintest/burndown/report/exportsd21
+exportsd26=/home/wintest/burndown/report/exportsd26
+exportsd27=/home/wintest/burndown/report/exportsd27
+volumesd21=/home/wintest/burndown/report/volumesd21
+volumesd26=/home/wintest/burndown/report/volumesd26
+volumesd27=/home/wintest/burndown/report/volumesd27
+exportsc21=/home/wintest/burndown/report/exportsc21
+exportsc26=/home/wintest/burndown/report/exportsc26
+exportsc27=/home/wintest/burndown/report/exportsc27
+volumesc21=/home/wintest/burndown/report/volumesc21
+volumesc26=/home/wintest/burndown/report/volumesc26
+volumesc27=/home/wintest/burndown/report/volumesc27
+
+
+if [ -s $logfile ]
+ then
+    echo ""
+    echo "Removing old $logfile ......"
+    echo ""
+    sleep 3
+    rm $logfile 2> /dev/null
+fi
+
+if [ -s $logfinal ]
+ then
+        mon=`date | awk '{print $2}'`
+        day=`date | awk '{print $3}'`
+        year=`date | awk '{print $6}'`
+        mv $logfinal $logfinal$mon$day$year
+fi
+
+
+/usr/local/bin/sshpass -f /home/wintest/burndown/pw ssh admin@[SERVERNAME] 'vserver export-policy rule show -vserver [SVM1] -fields policyname,protocol,clientmatch' | grep -v - | grep -v vserver | grep -v test | grep -v entries | grep -v "Last login" | grep -v "Unsuccessful" | sed -e 's/^\s*//' -e '/^$/d' > $exportsd21;
+/usr/local/bin/sshpass -f /home/wintest/burndown/pw ssh admin@[SERVERNAME] 'vol show -vserver [SVM1] -fields size,used,security-style,policy' | grep -v entries | grep -v vserver | grep -v test | grep -v - | grep -v "Last login" | grep -v "Unsuccessful" | sed -e 's/^\s*//' -e '/^$/d' > $volumesd21 
+/usr/local/bin/sshpass -f /home/wintest/burndown/pw ssh admin@[SERVERNAME] 'vserver export-policy rule show -vserver [SVM2] -fields policyname,protocol,clientmatch' | grep -v - | grep -v vserver | grep -v test | grep -v entries | grep -v "Last login" | grep -v "Unsuccessful" | sed -e 's/^\s*//' -e '/^$/d' > $exportsd26;
+/usr/local/bin/sshpass -f /home/wintest/burndown/pw ssh admin@[SERVERNAME] 'vol show -vserver [SVM2] -fields size,used,security-style,policy' | grep -v entries | grep -v vserver | grep -v test | grep -v -| grep -v "Last login" | grep -v "Unsuccessful" | sed -e 's/^\s*//' -e '/^$/d' > $volumesd26 
+/usr/local/bin/sshpass -f /home/wintest/burndown/pw ssh admin@[SERVERNAME] 'vserver export-policy rule show -vserver [SVM3] -fields policyname,protocol,clientmatch' | grep -v - | grep -v vserver | grep -v test | grep -v entries | grep -v "Last login" | grep -v "Unsuccessful" | sed -e 's/^\s*//' -e '/^$/d' > $exportsd27;
+/usr/local/bin/sshpass -f /home/wintest/burndown/pw ssh admin@[SERVERNAME] 'vol show -vserver [SVM3] -fields size,used,security-style,policy' | grep -v entries | grep -v vserver | grep -v test | grep -v - | grep -v "Last login" | grep -v "Unsuccessful" | sed -e 's/^\s*//' -e '/^$/d' > $volumesd27 
+/usr/local/bin/sshpass -f /home/wintest/burndown/pw ssh admin@[SERVERNAME2] 'vserver export-policy rule show -vserver [SVM4] -fields policyname,protocol,clientmatch' | grep -v - | grep -v vserver | grep -v test | grep -v entries | grep -v "Last login" | grep -v "Unsuccessful" | sed -e 's/^\s*//' -e '/^$/d' > $exportsc21;
+/usr/local/bin/sshpass -f /home/wintest/burndown/pw ssh admin@[SERVERNAME2] 'vol show -vserver [SVM4] -fields size,used,security-style,policy' | grep -v entries | grep -v vserver | grep -v test | grep -v - | grep -v "Last login" | grep -v "Unsuccessful" | sed -e 's/^\s*//' -e '/^$/d' > $volumesc21 
+/usr/local/bin/sshpass -f /home/wintest/burndown/pw ssh admin@[SERVERNAME2] 'vserver export-policy rule show -vserver [SVM5] -fields policyname,protocol,clientmatch' | grep -v - | grep -v vserver | grep -v test | grep -v entries | grep -v "Last login" | grep -v "Unsuccessful" | sed -e 's/^\s*//' -e '/^$/d' > $exportsc26;
+/usr/local/bin/sshpass -f /home/wintest/burndown/pw ssh admin@[SERVERNAME2] 'vol show -vserver [SVM5] -fields size,used,security-style,policy' | grep -v entries | grep -v vserver | grep -v test | grep -v - | grep -v "Last login" | grep -v "Unsuccessful" | sed -e 's/^\s*//' -e '/^$/d' > $volumesc26 
+/usr/local/bin/sshpass -f /home/wintest/burndown/pw ssh admin@[SERVERNAME2] 'vserver export-policy rule show -vserver [SVM6] -fields policyname,protocol,clientmatch' | grep -v - | grep -v vserver | grep -v test | grep -v entries | grep -v "Last login" | grep -v "Unsuccessful" | sed -e 's/^\s*//' -e '/^$/d' > $exportsc27;
+/usr/local/bin/sshpass -f /home/wintest/burndown/pw ssh admin@[SERVERNAME2] 'vol show -vserver [SVM6] -fields size,used,security-style,policy' | grep -v entries | grep -v vserver | grep -v test | grep -v - | grep -v "Last login" | grep -v "Unsuccessful" | sed -e 's/^\s*//' -e '/^$/d' > $volumesc27 
+
+a=1;
+IFS=$'\n'
+for b in `cat $volumesd21 | grep -v default | grep -v nfs | awk '{print $4}'`;   #DS1
+        do
+        c=1;
+        until [ c -gt `grep $b $exportsd21 | wc -l` ]    ##22
+        do
+                vserver=`cat $volumesd21 | grep -v default | grep -v nfs | awk ' {print $1}' | sed -n "$a"p`;
+                volume=`cat $volumesd21 | grep -v default | grep -v nfs | awk '{print $2}' | sed -n "$a"p`;
+                size=`cat $volumesd21 | grep -v default | grep -v nfs | awk '{print $3}' | sed -n "$a"p`;
+                policy=`cat $volumesd21 | grep -v default | grep -v nfs | awk '{print $4}' | sed -n "$a"p`;
+                security=`cat $volumesd21 | grep -v default | grep -v nfs | awk '{print $5}' | sed -n "$a"p`;
+                used=`cat $volumesd21 | grep -v default | grep -v nfs | awk '{print $6}' | sed -n "$a"p`;
+                rule=`grep $b $exportsd21 | awk '{print ($3)}' | sed -n "$c"p`
+                protocol=`grep $b $exportsd21 | awk '{print $(4)}' | sed -n "$c"p`
+                client=`grep $b $exportsd21 | awk '{print ($5)}' | sed -n "$c"p`
+                echo "$vserver $volume $size $policy $security $used $rule $protocol $client";
+                ((c=c+1))
+        done
+        ((a=a+1))
+done >> $logfile; 
+cat $volumesd21 | egrep -i "default| nfs" >> $logfile;
+
+d=1;
+IFS=$'\n'
+for e in `cat $volumesd26 | grep -v default | grep -v nfs | awk '{print $4}'`;   #DS1
+        do
+        f=1;
+        until [ f -gt `grep $e $exportsd26 | wc -l` ]    ##22
+        do
+                vserver=`cat $volumesd26 | grep -v default | grep -v nfs | awk ' {print $1}' | sed -n "$d"p`;
+                volume=`cat $volumesd26 | grep -v default | grep -v nfs | awk '{print $2}' | sed -n "$d"p`;
+                size=`cat $volumesd26 | grep -v default | grep -v nfs | awk '{print $3}' | sed -n "$d"p`;
+                policy=`cat $volumesd26 | grep -v default | grep -v nfs | awk '{print $4}' | sed -n "$d"p`;
+                security=`cat $volumesd26 | grep -v default | grep -v nfs | awk '{print $5}' | sed -n "$d"p`;
+                used=`cat $volumesd26 | grep -v default | grep -v nfs | awk '{print $6}' | sed -n "$d"p`;
+                rule=`grep $e $exportsd26 | awk '{print ($3)}' | sed -n "$f"p`
+                protocol=`grep $e $exportsd26 | awk '{print $(4)}' | sed -n "$f"p`
+                client=`grep $e $exportsd26 | awk '{print ($5)}' | sed -n "$f"p`
+                echo "$vserver $volume $size $policy $security $used $rule $protocol $client";
+                ((f=f+1))
+        done
+        ((d=d+1))
+done >> $logfile; 
+cat $volumesd26 | egrep -i "default| nfs" >> $logfile;
+
+g=1;
+IFS=$'\n'
+for h in `cat $volumesd27 | grep -v default | grep -v nfs | awk '{print $4}'`;   #DS1
+        do
+        i=1;
+        until [ i -gt `grep $h $exportsd27 | wc -l` ]    ##22
+        do
+                vserver=`cat $volumesd27 | grep -v default | grep -v nfs | awk ' {print $1}' | sed -n "$g"p`;
+                volume=`cat $volumesd27 | grep -v default | grep -v nfs | awk '{print $2}' | sed -n "$g"p`;
+                size=`cat $volumesd27 | grep -v default | grep -v nfs | awk '{print $3}' | sed -n "$g"p`;
+                policy=`cat $volumesd27 | grep -v default | grep -v nfs | awk '{print $4}' | sed -n "$g"p`;
+                security=`cat $volumesd27 | grep -v default | grep -v nfs | awk '{print $5}' | sed -n "$g"p`;
+                used=`cat $volumesd27 | grep -v default | grep -v nfs | awk '{print $6}' | sed -n "$g"p`;
+                rule=`grep $h $exportsd27 | awk '{print ($3)}' | sed -n "$i"p`
+                protocol=`grep $h $exportsd27 | awk '{print $(4)}' | sed -n "$i"p`
+                client=`grep $h $exportsd27 | awk '{print ($5)}' | sed -n "$i"p`
+                echo "$vserver $volume $size $policy $security $used $rule $protocol $client";
+                ((i=i+1))
+        done
+        ((g=g+1))
+done >> $logfile; 
+cat $volumesd27 | egrep -i "default| nfs" >> $logfile;
+
+j=1;
+IFS=$'\n'
+for k in `cat $volumesc21 | grep -v default | grep -v nfs | awk '{print $4}'`;   #DS1
+        do
+        l=1;
+        until [ l -gt `grep $k $exportsc21 | wc -l` ]    ##22
+        do
+                vserver=`cat $volumesc21 | grep -v default | grep -v nfs | awk ' {print $1}' | sed -n "$j"p`;
+                volume=`cat $volumesc21 | grep -v default | grep -v nfs | awk '{print $2}' | sed -n "$j"p`;
+                size=`cat $volumesc21 | grep -v default | grep -v nfs | awk '{print $3}' | sed -n "$j"p`;
+                policy=`cat $volumesc21 | grep -v default | grep -v nfs | awk '{print $4}' | sed -n "$j"p`;
+                security=`cat $volumesc21 | grep -v default | grep -v nfs | awk '{print $5}' | sed -n "$j"p`;
+                used=`cat $volumesc21 | grep -v default | grep -v nfs | awk '{print $6}' | sed -n "$j"p`;
+                rule=`grep $k $exportsc21 | awk '{print ($3)}' | sed -n "$l"p`
+                protocol=`grep $k $exportsc21 | awk '{print $(4)}' | sed -n "$l"p`
+                client=`grep $k $exportsc21 | awk '{print ($5)}' | sed -n "$l"p`
+                echo "$vserver $volume $size $policy $security $used $rule $protocol $client";
+                ((l=l+1))
+        done
+        ((j=j+1))
+done >> $logfile; 
+cat $volumesc21 | egrep -i "default| nfs" >> $logfile;
+
+m=1;
+IFS=$'\n'
+for n in `cat $volumesc26 | grep -v default | grep -v nfs | awk '{print $4}'`;   #DS1
+        do
+        o=1;
+        until [ o -gt `grep $n $exportsc26 | wc -l` ]    ##22
+        do
+                vserver=`cat $volumesc26 | grep -v default | grep -v nfs | awk ' {print $1}' | sed -n "$m"p`;
+                volume=`cat $volumesc26 | grep -v default | grep -v nfs | awk '{print $2}' | sed -n "$m"p`;
+                size=`cat $volumesc26 | grep -v default | grep -v nfs | awk '{print $3}' | sed -n "$m"p`;
+                policy=`cat $volumesc26 | grep -v default | grep -v nfs | awk '{print $4}' | sed -n "$m"p`;
+                security=`cat $volumesc26 | grep -v default | grep -v nfs | awk '{print $5}' | sed -n "$m"p`;
+                used=`cat $volumesc26 | grep -v default | grep -v nfs | awk '{print $6}' | sed -n "$m"p`;
+                rule=`grep $n $exportsc26 | awk '{print ($3)}' | sed -n "$o"p`
+                protocol=`grep $n $exportsc26 | awk '{print $(4)}' | sed -n "$o"p`
+                client=`grep $n $exportsc26 | awk '{print ($5)}' | sed -n "$o"p`
+                echo "$vserver $volume $size $policy $security $used $rule $protocol $client";
+                ((o=o+1))
+        done
+        ((m=m+1))
+done >> $logfile; 
+cat $volumesc26 | egrep -i "default| nfs" >> $logfile;
+
+p=1;
+IFS=$'\n'
+for q in `cat $volumesc27 | grep -v default | grep -v nfs | awk '{print $4}'`;   #DS1
+        do
+        r=1;
+        until [ r -gt `grep $q $exportsc27 | wc -l` ]    ##22
+        do
+                vserver=`cat $volumesc27 | grep -v default | grep -v nfs | awk ' {print $1}' | sed -n "$p"p`;
+                volume=`cat $volumesc27 | grep -v default | grep -v nfs | awk '{print $2}' | sed -n "$p"p`;
+                size=`cat $volumesc27 | grep -v default | grep -v nfs | awk '{print $3}' | sed -n "$p"p`;
+                policy=`cat $volumesc27 | grep -v default | grep -v nfs | awk '{print $4}' | sed -n "$p"p`;
+                security=`cat $volumesc27 | grep -v default | grep -v nfs | awk '{print $5}' | sed -n "$p"p`;
+                used=`cat $volumesc27 | grep -v default | grep -v nfs | awk '{print $6}' | sed -n "$p"p`;
+                rule=`grep $q $exportsc27 | awk '{print ($3)}' | sed -n "$r"p`
+                protocol=`grep $q $exportsc27 | awk '{print $(4)}' | sed -n "$r"p`
+                client=`grep $q $exportsc27 | awk '{print ($5)}' | sed -n "$r"p`
+                echo "$vserver $volume $size $policy $security $used $rule $protocol $client";
+                ((r=r+1))
+        done
+        ((p=p+1))
+done >> $logfile; 
+cat $volumesc27 | egrep -i "default| nfs" >> $logfile;
+
+echo -e '<!DOCTYPE html>\n<html>\n<head>\n<style>\n table, th, td {\n    font-family: Arial;\n    border:1px solid black;\n    width: 50%; text-align: center;\n padding: 2px;\n} caption { background-color: yellow ; color: red; font-weight: bold; } \n</style>\n</head>\n<body>\n<table>\n<caption><strong>DVDC/CULP NetApp Volumes</strong></caption>\n<b><tr><font color="red"><td>Vserver</td><td>Volume</td><td>Size</td><td>Policy-name</td><td>Security-style</td><td>Used</td><td>Rule-index</td><td>Protocol</td><td>Client-match</td></font></tr></b>' > $logfinal
+while read stmt
+do
+echo $stmt | sed 's/^/<tr><td>/;s/$/<\/td><\/tr>/;s/[ \t][ \t]*/<\/td><td>/g'
+done < $logfile >> $logfinal 
+
+export MAILTO="[PUT ANY EMAIL DISTRIBUTION LIST HERE]"
+export CONTENT="$content"
+export SUBJECT="NetApp Volumes Weekly Report"
+(
+ echo "Subject: $SUBJECT"
+ echo "from: Storage.Automation@albertsons.com"
+ echo "TO: $MAILTO"
+ echo "MIME-Version: 1.0"
+ echo "Content-Type: text/html"
+ echo "Content-Disposition: inline"
+ cat $CONTENT
+ ) | /usr/sbin/sendmail $MAILTO
