@@ -1,0 +1,48 @@
+logfile=/home/wintest/capacity/reclaim_tracker_raw
+logfinal=/home/wintest/capacity/reclaim_tracker_report
+hostname=`hostname`
+export PATH=$PATH:/usr/symcli/bin
+
+if [ -s $logfile ]
+ then
+    echo ""
+    echo "Removing old $logfile ......"
+    echo ""
+    sleep 3
+    rm $logfile 2> /dev/null
+    rm $logfinal 2> /dev/null
+fi
+
+IFS=$'\n'
+for i in `symaccess -sid [PUT SID NUMBER HERE] list | grep -i stor | awk '{print $1}'`; 
+do 
+echo $i
+echo $i >> $logfile
+#echo "===========================================" >> logfile
+Result=`symcfg -sid [PUT SID NUMBER HERE] list -tdev -detail -sg $i -gb | grep -i "GBs                    " | awk '{print $2,$4}'`
+if [ -z "$Result" ]; then
+        echo "0 0null" >> $logfile
+else
+        echo $Result >> $logfile
+fi
+done
+
+sed 'N;s/\n/ /g' $logfile >> $logfinal 
+
+echo -e '<!DOCTYPE html>\n<html>\n<head>\n<style>\n table, th, td {\n    font-family: Arial;\n    border:1px solid black;\n    width: 50%; text-align: center;\n padding: 2px;\n} caption { background-color: yellow ; color: red; font-weight: bold; } \n</style>\n</head>\n<body>\n<table>\n<caption><strong>DVDC PMAX02 Storage Group Tracker Report</strong></caption>\n<b><tr><font color="red"><td>Storage_Groups</td><td>Allocated_Space(GB)</td><td>Actual_Used(GB)</td></font></tr></b>' > output1.html
+while read stmt
+do
+echo $stmt | sed 's/^/<tr><td>/;s/$/<\/td><\/tr>/;s/[ \t][ \t]*/<\/td><td>/g'
+done < $logfinal >> output1.html
+export MAILTO="[PUT ANY EMAIL DISTRIBUTION LIST HERE]"
+export CONTENT="output1.html"
+export SUBJECT="[SITE] Storage Daily Storage Group Report"
+(
+ echo "Subject: $SUBJECT"
+ echo "from: Storage.Automation@albertsons.com"
+ echo "TO: $MAILTO"
+ echo "MIME-Version: 1.0"
+ echo "Content-Type: text/html"
+ echo "Content-Disposition: inline"
+ cat $CONTENT
+ ) | /usr/sbin/sendmail $MAILTO
