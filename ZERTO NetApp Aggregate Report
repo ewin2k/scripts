@@ -1,0 +1,40 @@
+#!/bin/ksh
+logfile=/home/wintest/zerto/aggr_raw
+logfinal=/home/wintest/zerto/aggr_report
+content=/home/wintest/zerto/content.html
+hostname=`hostname`
+export PATH=$PATH:/usr/symcli/bin
+
+if [ -s $logfile ]
+ then
+    echo ""
+    echo "Removing old $logfile ......"
+    echo ""
+    sleep 3
+    rm $logfile 2> /dev/null
+    rm $logfinal 2> /dev/null
+fi
+
+/usr/local/bin/sshpass -f /home/wintest/burndown/pw ssh [USERNAME]@[NETAPPSERVER] 'aggr show' > $logfile 
+
+cat $logfile | grep [SVM] | awk '{print $1,$2,$3,$4,$5,$6,$7}' > $logfinal 
+
+
+
+echo -e '<!DOCTYPE html>\n<html>\n<head>\n<style>\n table, th, td {\n    font-family: Arial;\n    border:1px solid black;\n    width: 50%; text-align: center;\n padding: 2px;\n} caption { background-color: yellow ; color: red; font-weight: bold; } \n</style>\n</head>\n<body>\n<table>\n<caption><strong>ZERTO NetApp Aggregate Report</strong></caption>\n<b><tr><font color="red"><td>Aggregate</td><td>Size(GB)</td><td>Available(GB)</td><td>Used%</td><td>State</td><td>#Vols</td><td>Nodes</td></font></tr></b>' > content.html
+while read stmt
+do
+echo $stmt | sed 's/^/<tr><td>/;s/$/<\/td><\/tr>/;s/[ \t][ \t]*/<\/td><td>/g'
+done < $logfinal >> content.html
+export MAILTO="[PUT ANY EMAIL DISTRIBUTION LIST HERE]"
+export CONTENT="content.html"
+export SUBJECT="ZERTO NetApp Aggregate Report"
+(
+ echo "Subject: $SUBJECT"
+ echo "from: Storage.Automation@albertsons.com"
+ echo "TO: $MAILTO"
+ echo "MIME-Version: 1.0"
+ echo "Content-Type: text/html"
+ echo "Content-Disposition: inline"
+ cat $CONTENT
+ ) | /usr/sbin/sendmail $MAILTO
