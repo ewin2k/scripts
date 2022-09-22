@@ -20,7 +20,7 @@ while read stmt
 do
 echo $stmt | sed 's/^/<tr><td>/;s/$/<\/td><\/tr>/;s/[ \t][ \t]*/<\/td><td>/g'
 done < $logfile >> output.html
-export MAILTO="[PUT ANY EMAIL DISTRIBUTION LIST HERE"
+export MAILTO="[PUT ANY EMAIL DISTRIBUTION LIST HERE]"
 export CONTENT="output.html"
 export SUBJECT="PMAX/VMAX3/VMAX-F SRP Pool utilization/compression report"
 (
